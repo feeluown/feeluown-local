@@ -26,6 +26,9 @@ setup(
         ),
     install_requires=[
         'feeluown',
+        'mutagen>=1.37',
+        'marshmallow',
+        'fuzzywuzzy',
     ],
     entry_points={
         'fuo.plugins_v1': [
