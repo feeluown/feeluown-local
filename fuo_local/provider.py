@@ -75,7 +75,9 @@ def add_song(fpath, g_songs, g_artists, g_albums):
         elif fpath.endswith('m4a'):
             metadata = EasyMP4(fpath)
     except MutagenError as e:
-        logger.exception('Mutagen parse metadata failed, ignore.')
+        logger.warning(
+            'Mutagen parse metadata failed, ignore.\n'
+            'file: {}, exception: {}'.format(fpath, str(e)))
         return None
 
     metadata_dict = dict(metadata)

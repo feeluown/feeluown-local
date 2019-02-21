@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 def show_provider(app):
-    app.playlists.clear()
+    app.pl_uimgr.clear()
     # app.playlists.add(provider.playlists)
 
     app.ui.left_panel.my_music_con.hide()
@@ -31,17 +31,16 @@ def enable(app):
     future_scan = loop.run_in_executor(None, provider.scan)
     app.library.register(provider)
     if app.mode & App.GuiMode:
-        from feeluown.components.provider import ProviderModel
-
-        pm = ProviderModel(
-            name='本地音乐',
-            icon='♪ ',
+        app.browser.route('/local')(show_provider)
+        pm = app.pvd_uimgr.create_item(
+            name=provider.identifier,
+            text='本地音乐',
+            symbol='♪ ',
             desc='点击显示所有本地音乐',
-            on_click=partial(show_provider, app),
         )
-        logger.info('Associate %s with %s', provider, pm.name)
-        app.providers.assoc(provider.identifier, pm)
-        future_scan.add_done_callback(lambda _: show_provider(app))
+        pm.clicked.connect(partial(app.browser.goto, uri='/local'), weak=False)
+        app.pvd_uimgr.add_item(pm)
+        future_scan.add_done_callback(lambda _: app.show_msg('本地音乐扫描完毕'))
 
 
 def disable(app):
