@@ -17,7 +17,8 @@ pip3 install fuo-local
 - ...
 
 ## changelog
+### 0.1.1 (2019-03-23)
+- 适配 feeluown 3.0a5+
 
 ### 0.1 (2019-03-18)
-
 - 支持扫描 `~/Music` 目录的本地音乐
