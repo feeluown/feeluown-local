@@ -14,7 +14,11 @@ __desc__ = '本地音乐'
 logger = logging.getLogger(__name__)
 
 
-def show_provider(app):
+def show_provider(req):
+    if hasattr(req, 'ctx'):
+        app = req.ctx['app']
+    else:
+        app = req  # 兼容老版本
     app.pl_uimgr.clear()
     # app.playlists.add(provider.playlists)
 
