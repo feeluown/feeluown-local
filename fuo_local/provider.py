@@ -84,7 +84,7 @@ def add_song(fpath, g_songs, g_artists, g_albums):
     for key in metadata.keys():
         metadata_dict[key] = metadata_dict[key][0]
     if 'title' not in metadata_dict:
-        title = fpath.rsplit('/')[-1].split('.')[0]
+        title = os.path.split(fpath)[-1].split('.')[0]
         metadata_dict['title'] = title
     metadata_dict.update(dict(
         url=fpath,
