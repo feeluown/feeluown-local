@@ -18,7 +18,7 @@ pip3 install fuo-local
 
 ## changelog
 
-### 0.1.2 (WIP)
+### 0.1.2 (2019-05-05)
 - 修复 windows 下路径解析错误
 - 更好的解析 id3 信息编码为 GBK 的音乐文件
 
