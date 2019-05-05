@@ -3,7 +3,8 @@
 import asyncio
 import logging
 from functools import partial
-
+from .patch import patch_mutagen
+patch_mutagen()
 from .provider import provider
 
 __alias__ = '本地音乐'

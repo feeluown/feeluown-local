@@ -252,7 +252,7 @@ class LocalProvider(AbstractProvider):
         limit = kwargs.get('limit', 10)
         repr_song_map = dict()
         for song in self.songs:
-            key = song.title + ' ' + song.artists_name + str(song.identifier)
+            key = song.title + ' ' + song.artists_name
             repr_song_map[key] = song
         choices = repr_song_map.keys()
         result = process.extract(keyword, choices, limit=limit)

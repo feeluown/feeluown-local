@@ -20,6 +20,7 @@ pip3 install fuo-local
 
 ### 0.1.2 (WIP)
 - 修复 windows 下路径解析错误
+- 更好的解析 id3 信息编码为 GBK 的音乐文件
 
 ### 0.1.1 (2019-03-23)
 - 适配 feeluown 3.0a5+
