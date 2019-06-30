@@ -25,7 +25,7 @@ def show_provider(req):
 
     app.ui.left_panel.my_music_con.hide()
     app.ui.left_panel.playlists_con.hide()
-    app.ui.table_container.show_songs(provider.songs)
+    app.ui.songs_table_container.show_songs(provider.songs)
 
 
 def enable(app):
