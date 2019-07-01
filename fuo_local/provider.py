@@ -90,11 +90,11 @@ def add_song(fpath, g_songs, g_artists, g_albums):
         url=fpath,
         duration=metadata.info.length * 1000  # milesecond
     ))
-    schema = EasyMP3MetadataSongSchema(strict=True)
+    schema = EasyMP3MetadataSongSchema()
     try:
-        data, _ = schema.load(metadata_dict)
+        data = schema.load(metadata_dict)
     except ValidationError:
-        logger.exeception('解析音乐文件({}) 元数据失败'.format(fpath))
+        logger.exception('解析音乐文件({}) 元数据失败'.format(fpath))
         return
 
     # NOTE: use {title}-{artists_name}-{album_name} as song identifier
