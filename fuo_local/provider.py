@@ -255,7 +255,10 @@ class LocalProvider(AbstractProvider):
             key = song.title + ' ' + song.artists_name
             repr_song_map[key] = song
         choices = repr_song_map.keys()
-        result = process.extract(keyword, choices, limit=limit)
+        if choices:
+            result = process.extract(keyword, choices, limit=limit)
+        else:
+            result = []
         result_songs = []
         for each, score in result:
             # if score > 80, keyword is almost included in song key
