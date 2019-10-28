@@ -18,8 +18,9 @@ pip3 install fuo-local
 
 ## changelog
 
-### 0.1.3 (WIP)
+### 0.1.3
 - 修复：歌曲为空时，search 报错
+- 适配 feeluown 3.1
 
 ### 0.1.2 (2019-05-05)
 - 修复 windows 下路径解析错误
