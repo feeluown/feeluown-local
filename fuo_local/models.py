@@ -7,6 +7,7 @@ from fuocore.models import (
     ArtistModel,
     SearchModel,
 )
+from fuocore.reader import RandomSequentialReader
 
 from .provider import provider
 
@@ -47,26 +48,19 @@ class LArtistModel(ArtistModel, LBaseModel):
     _detail_fields = ('songs', )
 
     class Meta:
-        fields = ('albums2', 'albums3')
         allow_create_albums_g = True
 
     @classmethod
     def get(cls, identifier):
         return cls.meta.provider.library.get_artist(identifier)
 
-    # 可能存在的问题: 如果专辑过多时，是否能一次性选择全部？毕竟这是本地库
     def create_albums_g(self):
-        for album in self.albums:
-            yield album
-
-    def create_albums2_g(self):
-        for album in self.albums2:
-            yield album
-
-    def create_albums3_g(self):
-        for album in self.albums3:
-            yield album
-
+        count = len(self.albums)
+        read_func = lambda start, end: self.albums[start:end]
+        # we can change max_per_read later when we need
+        return RandomSequentialReader(count,
+                                      read_func=read_func,
+                                      max_per_read=1000)
 
 class LSearchModel(SearchModel, LBaseModel):
     pass

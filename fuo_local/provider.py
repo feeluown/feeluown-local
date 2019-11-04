@@ -18,6 +18,7 @@ from mutagen.easymp4 import EasyMP4
 from fuocore.provider import AbstractProvider
 from fuocore.utils import elfhash
 from fuocore.utils import log_exectime
+from fuocore.models import AlbumType
 
 
 logger = logging.getLogger(__name__)
@@ -51,19 +52,30 @@ def create_artist(identifier, name):
                         name=name,
                         songs=[],
                         albums=[],
-                        albums2=[],
-                        albums3=[],
                         desc='',
                         cover='',)
 
 
 def create_album(identifier, name):
-    return LAlbumModel(identifier=identifier,
-                       name=name,
-                       songs=[],
-                       artists=[],
-                       desc='',
-                       cover='',)
+    """create album model with album name
+    """
+    album = LAlbumModel(identifier=identifier,
+                        name=name,
+                        songs=[],
+                        artists=[],
+                        desc='',
+                        cover='',)
+    # guess album type by its name
+    #
+    # album name which contains following string are `Single`
+    #   1. ' - Single'  6+3=9
+    #   2. '(single)'   6+2=8
+    #   3. '（single）'  6+2=8
+    if 'single' in name[-9:].lower():
+        album.type = AlbumType.single
+    if 'ep' in name[-5:].lower():
+        album.type = AlbumType.ep
+    return album
 
 
 def add_song(fpath, g_songs, g_artists, g_albums):
@@ -152,12 +164,8 @@ def add_song(fpath, g_songs, g_artists, g_albums):
         album = g_albums[album_id]
 
     # 处理专辑的歌手信息和歌曲信息，专辑歌手的专辑列表信息
-    if album_name.endswith(' - Single') or album_name.endswith(' - EP'):
-        if album not in album_artist.albums2:
-            album_artist.albums2.append(album)
-    else:
-        if album not in album_artist.albums:
-            album_artist.albums.append(album)
+    if album not in album_artist.albums:
+        album_artist.albums.append(album)
     if album_artist not in album.artists:
         album.artists.append(album_artist)
     if song not in album.songs:
@@ -176,14 +184,6 @@ def add_song(fpath, g_songs, g_artists, g_albums):
             song.artists.append(artist)
         if song not in artist.songs:
             artist.songs.append(song)
-
-        # 处理歌曲歌手的参与作品信息(不与前面的重复)
-        if album not in artist.albums and album not in artist.albums2 and album not in artist.albums3:
-            artist.albums3.append(album)
-
-    # 处理专辑歌手的歌曲信息: 有些作词人出合辑很少出现在歌曲歌手里(可选)
-    # if song not in album_artist.songs:
-    #     album_artist.songs.append(song)
 
 
 class Library:
@@ -234,10 +234,6 @@ class Library:
         for artist in self._artists.values():
             if artist.albums:
                 artist.albums.sort(key=lambda x: (x.songs[0].date is None, x.songs[0].date), reverse=True)
-            if artist.albums2:
-                artist.albums2.sort(key=lambda x: (x.songs[0].date is None, x.songs[0].date), reverse=True)
-            if artist.albums3:
-                artist.albums3.sort(key=lambda x: (x.songs[0].date is None, x.songs[0].date), reverse=True)
             if artist.songs:
                 artist.songs.sort(key=lambda x: x.title)
 
