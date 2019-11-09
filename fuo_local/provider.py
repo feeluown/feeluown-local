@@ -18,8 +18,11 @@ from mutagen.easymp4 import EasyMP4
 from fuocore.provider import AbstractProvider
 from fuocore.utils import elfhash
 from fuocore.utils import log_exectime
+from fuocore.media import Media, MediaType
 from fuocore.models import AlbumType
+from fuocore.models import reverse
 
+from .utils import read_audio_cover
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +59,7 @@ def create_artist(identifier, name):
                         cover='',)
 
 
-def create_album(identifier, name):
+def create_album(identifier, name, cover):
     """create album model with album name
     """
     album = LAlbumModel(identifier=identifier,
@@ -64,7 +67,7 @@ def create_album(identifier, name):
                         songs=[],
                         artists=[],
                         desc='',
-                        cover='',)
+                        cover=cover,)
     # guess album type by its name
     #
     # album name which contains following string are `Single`
@@ -157,8 +160,13 @@ def add_song(fpath, g_songs, g_artists, g_albums):
     # 生成 album model
     album_id_str = album_name + album_artist_name
     album_id = gen_id(album_id_str)
+    cover_data, cover_fmt = read_audio_cover(fpath)
+    if cover_data is None:
+        cover = None
+    else:
+        cover = Media(reverse(song, '/cover/data'), type_=MediaType.image)
     if album_id not in g_albums:
-        album = create_album(album_id, album_name)
+        album = create_album(album_id, album_name, cover)
         g_albums[album_id] = album
     else:
         album = g_albums[album_id]
