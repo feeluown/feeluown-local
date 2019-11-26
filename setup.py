@@ -27,7 +27,7 @@ setup(
     install_requires=[
         'feeluown',
         'mutagen>=1.37',
-        'marshmallow',
+        'marshmallow>=3.0',
         'fuzzywuzzy',
     ],
     entry_points={

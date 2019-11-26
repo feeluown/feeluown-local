@@ -1,23 +1,23 @@
 # -*- coding: utf-8 -*-
-from marshmallow import Schema, fields
+from marshmallow import Schema, fields, EXCLUDE
 
 
 DEFAULT_TITLE = DEFAULT_ARTIST_NAME = DEFAULT_ALBUM_NAME = 'Unknown'
 
 
 class EasyMP3MetadataSongSchema(Schema):
+    class Meta:
+        unknown = EXCLUDE
+
     """EasyMP3 metadata"""
     url = fields.Str(required=True)
     duration = fields.Float(required=True)
-    title = fields.Str(required=True, missing=DEFAULT_TITLE)
-    artists_name = fields.Str(required=True, load_from='artist',
-                              missing=DEFAULT_ARTIST_NAME)
-    album_name = fields.Str(required=True, load_from='album',
-                            missing=DEFAULT_ALBUM_NAME)
-    album_artist_name = fields.Str(required=True, load_from='albumartist',
-                                   missing=DEFAULT_ARTIST_NAME)
-    track = fields.Str(load_from='tracknumber', missing='1/1')
-    disc = fields.Str(load_from='discnumber', missing='1/1')
+    title = fields.Str(missing=DEFAULT_TITLE)
+    artists_name = fields.Str(data_key='artist', missing=DEFAULT_ARTIST_NAME)
+    album_name = fields.Str(data_key='album', missing=DEFAULT_ALBUM_NAME)
+    album_artist_name = fields.Str(data_key='albumartist', missing=DEFAULT_ARTIST_NAME)
+    track = fields.Str(data_key='tracknumber', missing='1/1')
+    disc = fields.Str(data_key='discnumber', missing='1/1')
     date = fields.Str(missing='')
     genre = fields.Str(missing='')
 
