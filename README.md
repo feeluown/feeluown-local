@@ -18,6 +18,10 @@ pip3 install fuo-local
 
 ## changelog
 
+### 0.2 (2019-11-26)
+- 适配 feeluown>=3.2a0
+- 使用 3.x 的 marshmallow
+
 ### 0.1.3
 - 修复：歌曲为空时，search 报错
 - 适配 feeluown 3.1
