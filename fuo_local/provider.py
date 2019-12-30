@@ -242,25 +242,45 @@ class Library:
         logger.info('录入本地音乐库完毕')
 
     def sortout(self):
+        def sort_album_func(album):
+            if album.songs:
+                return (album.songs[0].date is not None, album.songs[0].date)
+            return (False, '0')
+
         for album in self._albums.values():
             try:
                 album.songs.sort(key=lambda x: (int(x.disc.split('/')[0]), int(x.track.split('/')[0])))
-                if album.name is not 'Unknown':
-                    album.cover = Media(reverse(album.songs[0], '/cover/data'), type_=MediaType.image) if read_audio_cover(album.songs[0].url)[0] else None
-            except Exception as e:
+                if album.name != 'Unknown':
+                    cover_data, _ = read_audio_cover(album.songs[0].url)
+                    if cover_data:
+                        cover = Media(reverse(album.songs[0], '/cover/data'),
+                                      type_=MediaType.image)
+                    else:
+                        cover = None
+                    album.cover = cover
+            except:  # noqa
                 logger.exception('Sort album songs failed.')
 
         for artist in self._artists.values():
             if artist.albums:
-                artist.albums.sort(key=lambda x: (x.songs[0].date is not None, x.songs[0].date), reverse=True)
+                artist.albums.sort(key=sort_album_func, reverse=True)
                 artist.cover = artist.albums[0].cover
             if artist.contributed_albums:
-                artist.contributed_albums.sort(key=lambda x: (x.songs[0].date is not None, x.songs[0].date), reverse=True)
+                artist.contributed_albums.sort(key=sort_album_func, reverse=True)
             if artist.songs:
+                # sort artist songs
                 artist.songs.sort(key=lambda x: x.title)
-                for song in sorted([song for song in artist.songs if song.album_name is 'Unknown'],
-                                   key=lambda x: (x.date is not None, x.date), reverse=True):
-                    artist.cover = Media(reverse(song, '/cover/data'), type_=MediaType.image) if read_audio_cover(song.url)[0] else None
+                # use song cover as artist cover
+                songs_with_unknown_album = [song for song in artist.songs
+                                            if song.album_name != 'Unknown']
+                for song in sorted(songs_with_unknown_album,
+                                   key=lambda x: (x.date is not None, x.date),
+                                   reverse=True):
+                    if read_audio_cover(song.url)[0]:
+                        artist.cover = Media(reverse(song, '/cover/data'),
+                                             type_=MediaType.image)
+                    else:
+                        artist.cover = None
                     break
 
 

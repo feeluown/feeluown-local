@@ -61,20 +61,11 @@ class LArtistModel(ArtistModel, LBaseModel):
         return cls.meta.provider.library.get_artist(identifier)
 
     def create_albums_g(self):
-        count = len(self.albums)
-        read_func = lambda start, end: self.albums[start:end]
-        # we can change max_per_read later when we need
-        return RandomSequentialReader(count,
-                                      read_func=read_func,
-                                      max_per_read=1000)
+        return RandomSequentialReader.from_list(self.albums)
 
     def create_contributed_albums_g(self):
-        count = len(self.contributed_albums)
-        read_func = lambda start, end: self.contributed_albums[start:end]
-        # we can change max_per_read later when we need
-        return RandomSequentialReader(count,
-                                      read_func=read_func,
-                                      max_per_read=1000)
+        return RandomSequentialReader.from_list(self.contributed_albums or [])
+
 
 class LSearchModel(SearchModel, LBaseModel):
     pass
