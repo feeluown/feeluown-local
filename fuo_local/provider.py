@@ -55,6 +55,7 @@ def create_artist(identifier, name):
                         name=name,
                         songs=[],
                         albums=[],
+                        contributed_albums=[],
                         desc='',
                         cover='',)
 
@@ -193,6 +194,14 @@ def add_song(fpath, g_songs, g_artists, g_albums):
         if song not in artist.songs:
             artist.songs.append(song)
 
+        # 处理歌曲歌手的参与作品信息(不与前面的重复)
+        if album not in artist.albums and album not in artist.contributed_albums:
+            artist.contributed_albums.append(album)
+
+    # 处理专辑歌手的歌曲信息: 有些作词人出合辑很少出现在歌曲歌手里(可选)
+    # if song not in album_artist.songs:
+    #     album_artist.songs.append(song)
+
 
 class Library:
     DEFAULT_MUSIC_FOLDER = os.path.expanduser('~') + '/Music'
@@ -236,14 +245,23 @@ class Library:
         for album in self._albums.values():
             try:
                 album.songs.sort(key=lambda x: (int(x.disc.split('/')[0]), int(x.track.split('/')[0])))
+                if album.name is not 'Unknown':
+                    album.cover = Media(reverse(album.songs[0], '/cover/data'), type_=MediaType.image) if read_audio_cover(album.songs[0].url)[0] else None
             except Exception as e:
                 logger.exception('Sort album songs failed.')
 
         for artist in self._artists.values():
             if artist.albums:
-                artist.albums.sort(key=lambda x: (x.songs[0].date is None, x.songs[0].date), reverse=True)
+                artist.albums.sort(key=lambda x: (x.songs[0].date is not None, x.songs[0].date), reverse=True)
+                artist.cover = artist.albums[0].cover
+            if artist.contributed_albums:
+                artist.contributed_albums.sort(key=lambda x: (x.songs[0].date is not None, x.songs[0].date), reverse=True)
             if artist.songs:
                 artist.songs.sort(key=lambda x: x.title)
+                for song in sorted([song for song in artist.songs if song.album_name is 'Unknown'],
+                                   key=lambda x: (x.date is not None, x.date), reverse=True):
+                    artist.cover = Media(reverse(song, '/cover/data'), type_=MediaType.image) if read_audio_cover(song.url)[0] else None
+                    break
 
 
 class LocalProvider(AbstractProvider):

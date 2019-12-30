@@ -26,6 +26,6 @@ def read_audio_cover(fpath):
                     fmt = 'jpg'
                 else:
                     fmt = 'png'
-                return cover.data, fmt
+                return cover, fmt
 
     return None, None

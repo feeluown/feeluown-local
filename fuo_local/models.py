@@ -53,6 +53,7 @@ class LAlbumModel(AlbumModel, LBaseModel):
 class LArtistModel(ArtistModel, LBaseModel):
 
     class Meta:
+        fields = ('contributed_albums', )
         allow_create_albums_g = True
 
     @classmethod
@@ -67,6 +68,13 @@ class LArtistModel(ArtistModel, LBaseModel):
                                       read_func=read_func,
                                       max_per_read=1000)
 
+    def create_contributed_albums_g(self):
+        count = len(self.contributed_albums)
+        read_func = lambda start, end: self.contributed_albums[start:end]
+        # we can change max_per_read later when we need
+        return RandomSequentialReader(count,
+                                      read_func=read_func,
+                                      max_per_read=1000)
 
 class LSearchModel(SearchModel, LBaseModel):
     pass
