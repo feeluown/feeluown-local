@@ -241,7 +241,12 @@ class Library:
             add_song(fpath, self._songs, self._artists, self._albums)
         logger.info('录入本地音乐库完毕')
 
-    def sortout(self):
+    def after_scan(self):
+        """
+        歌曲扫描完成后，对信息进行一些加工，比如
+        1. 给专辑歌曲排序
+        2. 给专辑和歌手加封面
+        """
         def sort_album_func(album):
             if album.songs:
                 return (album.songs[0].date is not None, album.songs[0].date)
@@ -271,17 +276,16 @@ class Library:
                 # sort artist songs
                 artist.songs.sort(key=lambda x: x.title)
                 # use song cover as artist cover
+                # https://github.com/feeluown/feeluown-local/pull/3/files#r362126996
                 songs_with_unknown_album = [song for song in artist.songs
-                                            if song.album_name != 'Unknown']
+                                            if song.album_name == 'Unknown']
                 for song in sorted(songs_with_unknown_album,
                                    key=lambda x: (x.date is not None, x.date),
                                    reverse=True):
                     if read_audio_cover(song.url)[0]:
                         artist.cover = Media(reverse(song, '/cover/data'),
                                              type_=MediaType.image)
-                    else:
-                        artist.cover = None
-                    break
+                        break
 
 
 class LocalProvider(AbstractProvider):
@@ -293,7 +297,7 @@ class LocalProvider(AbstractProvider):
 
     def scan(self, paths=None, depth=3):
         self.library.scan(paths, depth)
-        self.library.sortout()
+        self.library.after_scan()
 
     @property
     def identifier(self):
