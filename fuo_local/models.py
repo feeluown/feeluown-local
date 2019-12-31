@@ -64,7 +64,7 @@ class LArtistModel(ArtistModel, LBaseModel):
         return RandomSequentialReader.from_list(self.albums)
 
     def create_contributed_albums_g(self):
-        return RandomSequentialReader.from_list(self.contributed_albums or [])
+        return RandomSequentialReader.from_list(self.contributed_albums)
 
 
 class LSearchModel(SearchModel, LBaseModel):
