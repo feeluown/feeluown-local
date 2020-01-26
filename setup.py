@@ -5,7 +5,7 @@ from setuptools import setup
 
 setup(
     name='fuo_local',
-    version='0.2',
+    version='0.2.1',
     description='feeluown local plugin',
     author='Cosven',
     author_email='yinshaowen241@gmail.com',
