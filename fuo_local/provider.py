@@ -161,13 +161,13 @@ def add_song(fpath, g_songs, g_artists, g_albums):
     # 生成 album model
     album_id_str = album_name + album_artist_name
     album_id = gen_id(album_id_str)
-    cover_data, cover_fmt = read_audio_cover(fpath)
-    if cover_data is None:
-        cover = None
-    else:
-        cover = Media(reverse(song, '/cover/data'), type_=MediaType.image)
+    # cover_data, cover_fmt = read_audio_cover(fpath)
+    # if cover_data is None:
+    #     cover = None
+    # else:
+    #     cover = Media(reverse(song, '/cover/data'), type_=MediaType.image)
     if album_id not in g_albums:
-        album = create_album(album_id, album_name, cover)
+        album = create_album(album_id, album_name, None)
         g_albums[album_id] = album
     else:
         album = g_albums[album_id]
