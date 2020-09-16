@@ -214,6 +214,12 @@ class Library:
     def list_songs(self):
         return list(self._songs.values())
 
+    def list_albums(self):
+        return list(self._albums.values())
+
+    def list_artists(self):
+        return list(self._artists.values())
+
     def get_song(self, identifier):
         return self._songs.get(identifier)
 
@@ -310,6 +316,14 @@ class LocalProvider(AbstractProvider):
     @property
     def songs(self):
         return self.library.list_songs()
+
+    @property
+    def albums(self):
+        return self.library.list_albums()
+
+    @property
+    def artists(self):
+        return self.library.list_artists()
 
     @log_exectime
     def search(self, keyword, **kwargs):

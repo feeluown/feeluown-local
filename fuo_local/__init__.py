@@ -25,7 +25,55 @@ def show_provider(req):
 
     app.ui.left_panel.my_music_con.hide()
     app.ui.left_panel.playlists_con.hide()
-    app.ui.table_container.show_songs(provider.songs)
+
+    from contextlib import suppress
+    from requests.exceptions import RequestException
+    from fuocore import aio
+    from fuocore.excs import ProviderIOError
+    from feeluown.helpers import async_run
+    from feeluown.containers.table import Renderer
+
+    class LibraryRenderer(Renderer):
+        def __init__(self, songs, albums, artists):
+            self.songs = songs
+            self.albums = albums
+            self.artists = artists
+
+        async def render(self):
+            self.meta_widget.show()
+            self.tabbar.show()
+            self.tabbar.library_mode()
+
+            # fetch and render songs
+            songs = await async_run(lambda: self.songs)
+            self.show_songs(songs_g=None, songs=songs, show_count=True)
+            self.tabbar.show_songs_needed.connect(
+                lambda: self.show_songs(songs_g=None,
+                                        songs=songs,
+                                        show_count=True))
+
+            # fetch and render albums
+            self.tabbar.show_albums_needed.connect(lambda: aio.create_task(self._show_albums()))
+
+            # fetch and render artists
+            self.tabbar.show_artists_needed.connect(lambda: aio.create_task(self._show_artists()))
+
+        async def _show_albums(self):
+            with suppress(ProviderIOError, RequestException):
+                albums = await async_run(lambda: self.albums)
+                self.toolbar.filter_albums_needed.connect(
+                    lambda types: self.albums_table.model().filter_by_types(types))
+                self.tabbar.show_albums_needed.connect(
+                    lambda: self.show_albums(albums))
+
+        async def _show_artists(self):
+            with suppress(ProviderIOError, RequestException):
+                artists = await async_run(lambda: self.artists)
+                self.tabbar.show_artists_needed.connect(
+                    lambda: self.show_artists(artists))
+
+    aio.create_task(app.ui.table_container.set_renderer(
+        LibraryRenderer(provider.songs, provider.albums, provider.artists)))
 
 
 def enable(app):
