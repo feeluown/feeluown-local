@@ -3,9 +3,13 @@
 import asyncio
 import logging
 from functools import partial
+
+from fuocore import aio
+
 from .patch import patch_mutagen
 patch_mutagen()
 from .provider import provider
+from .ui import LibraryRenderer
 
 __alias__ = '本地音乐'
 __feeluown_version__ = '1.1.0'
@@ -25,7 +29,9 @@ def show_provider(req):
 
     app.ui.left_panel.my_music_con.hide()
     app.ui.left_panel.playlists_con.hide()
-    app.ui.songs_table_container.show_songs(provider.songs)
+
+    aio.create_task(app.ui.table_container.set_renderer(
+        LibraryRenderer(provider.songs, provider.albums, provider.artists)))
 
 
 def enable(app):
@@ -45,6 +51,7 @@ def enable(app):
         )
         pm.clicked.connect(partial(app.browser.goto, uri='/local'), weak=False)
         app.pvd_uimgr.add_item(pm)
+        future_scan.add_done_callback(lambda _: app.coll_uimgr.refresh())
         future_scan.add_done_callback(lambda _: app.show_msg('本地音乐扫描完毕'))
 
 

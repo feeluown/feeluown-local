@@ -90,7 +90,7 @@ def add_song(fpath, g_songs, g_artists, g_albums):
     try:
         if fpath.endswith('mp3') or fpath.endswith('ogg') or fpath.endswith('wma'):
             metadata = EasyMP3(fpath)
-        elif fpath.endswith('m4a'):
+        elif fpath.endswith('m4a') or fpath.endswith('m4v'):
             metadata = EasyMP4(fpath)
     except MutagenError as e:
         logger.warning(
@@ -214,6 +214,12 @@ class Library:
     def list_songs(self):
         return list(self._songs.values())
 
+    def list_albums(self):
+        return list(self._albums.values())
+
+    def list_artists(self):
+        return list(self._artists.values())
+
     def get_song(self, identifier):
         return self._songs.get(identifier)
 
@@ -227,7 +233,7 @@ class Library:
     def scan(self, paths=None, depth=2):
         """scan media files in all paths
         """
-        song_exts = ['mp3', 'ogg', 'wma', 'm4a']
+        song_exts = ['mp3', 'ogg', 'wma', 'm4a', 'm4v']
         exts = song_exts
         paths = paths or [Library.DEFAULT_MUSIC_FOLDER]
         depth = depth if depth <= 3 else 3
@@ -310,6 +316,14 @@ class LocalProvider(AbstractProvider):
     @property
     def songs(self):
         return self.library.list_songs()
+
+    @property
+    def albums(self):
+        return self.library.list_albums()
+
+    @property
+    def artists(self):
+        return self.library.list_artists()
 
     @log_exectime
     def search(self, keyword, **kwargs):
