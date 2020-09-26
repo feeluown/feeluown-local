@@ -148,7 +148,8 @@ def add_song(fpath, g_songs, g_artists, g_albums):
         g_songs[song_id] = song
     else:
         song = g_songs[song_id]
-        logger.debug('Duplicate song: %s %s', song.url, fpath)
+        # 继续监视哈希函数性能
+        logger.warning('Duplicate song: %s %s', song.url, fpath)
         return
 
     # 生成 album artist model
