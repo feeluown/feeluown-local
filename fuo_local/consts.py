@@ -5,7 +5,7 @@ MUSIC_FOLDERS = [os.path.expanduser('~') + '/Music']
 # 由使用者确定需要过滤的文件类型
 FORMATs = ['mp3', 'ogg', 'wma', 'm4a', 'm4v', 'flac']
 
-# 由使用者确定显示和搜索需要用的㊗主语言
+# 由使用者确定显示和搜索需要用的主语言
 CORE_LANGUAGE = 'cn'  # auto/cn/tc
 
 ENABLE_WATCHER = True

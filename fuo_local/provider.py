@@ -15,6 +15,8 @@ from marshmallow.exceptions import ValidationError
 from mutagen import MutagenError
 from mutagen.mp3 import EasyMP3
 from mutagen.easymp4 import EasyMP4
+from mutagen.flac import FLAC
+from mutagen.apev2 import APEv2
 from fuocore.provider import AbstractProvider
 from fuocore.utils import elfhash
 from fuocore.utils import log_exectime
@@ -22,6 +24,10 @@ from fuocore.media import Media, MediaType
 from fuocore.models import AlbumType
 from fuocore.models import reverse
 
+from .consts import FORMATS, ENABLE_WATCHER, ENABLE_DATABASE, DATABASE_FILE
+from .multi_lans import core_lans
+from .database import load_database, save_database
+from .watcher import watcher
 from .utils import read_audio_cover
 
 logger = logging.getLogger(__name__)
@@ -82,7 +88,7 @@ def create_album(identifier, name, cover):
     return album
 
 
-def add_song(fpath, g_songs, g_artists, g_albums):
+def add_song(fpath, g_files, g_songs, g_artists, g_albums):
     """
     parse music file metadata with Easymp3 and return a song
     model.
@@ -92,6 +98,12 @@ def add_song(fpath, g_songs, g_artists, g_albums):
             metadata = EasyMP3(fpath)
         elif fpath.endswith('m4a') or fpath.endswith('m4v'):
             metadata = EasyMP4(fpath)
+        elif fpath.endswith('flac'):
+            metadata = FLAC(fpath)
+        elif fpath.endswith('ape'):
+            metadata = APEv2(fpath)
+        elif fpath.endswith('wav'):
+            metadata = dict()
     except MutagenError as e:
         logger.warning(
             'Mutagen parse metadata failed, ignore.\n'
@@ -100,7 +112,7 @@ def add_song(fpath, g_songs, g_artists, g_albums):
 
     metadata_dict = dict(metadata)
     for key in metadata.keys():
-        metadata_dict[key] = metadata_dict[key][0]
+        metadata_dict[key] = core_lans(metadata_dict[key][0])
     if 'title' not in metadata_dict:
         title = os.path.split(fpath)[-1].split('.')[0]
         metadata_dict['title'] = title
@@ -110,7 +122,12 @@ def add_song(fpath, g_songs, g_artists, g_albums):
     ))
 
     try:
-        data = EasyMP3MetadataSongSchema().load(metadata_dict)
+        if fpath.endswith('flac'):
+            data = FLACMetadataSongSchema().load(metadata_dict)
+        elif fpath.endswith('ape'):
+            data = APEMetadataSongSchema().load(metadata_dict)
+        else:
+            data = EasyMP3MetadataSongSchema().load(metadata_dict)
     except ValidationError:
         logger.exception('解析音乐文件({}) 元数据失败'.format(fpath))
         return
@@ -131,6 +148,7 @@ def add_song(fpath, g_songs, g_artists, g_albums):
     song_id_str = '-'.join([title, artists_name, album_name, str(int(duration))])
     song_id = gen_id(song_id_str)
     if song_id not in g_songs:
+        g_files[fpath] = song_id
         # 剩下 album, lyric 三个字段没有初始化
         song = LSongModel(identifier=song_id,
                           artists=[],
@@ -212,6 +230,7 @@ class Library:
         self._songs = {}
         self._albums = {}
         self._artists = {}
+        self._files = {}
 
     def list_songs(self):
         return list(self._songs.values())
@@ -235,7 +254,7 @@ class Library:
     def scan(self, paths=None, depth=2):
         """scan media files in all paths
         """
-        song_exts = ['mp3', 'ogg', 'wma', 'm4a', 'm4v']
+        song_exts = FORMATS
         exts = song_exts
         paths = paths or [Library.DEFAULT_MUSIC_FOLDER]
         depth = depth if depth <= 3 else 3
@@ -245,10 +264,15 @@ class Library:
             media_files.extend(scan_directory(directory, exts, depth))
         logger.info('共扫描到 %d 个音乐文件，准备将其录入本地音乐库', len(media_files))
 
-        for fpath in media_files:
-            add_song(fpath, self._songs, self._artists, self._albums)
+        if ENABLE_DATABASE and os.path.exists(DATABASE_FILE):
+            load_database(media_files, self._files, self._songs, self._artists, self._albums)
+        else:
+            for fpath in media_files:
+                add_song(fpath, self._files, self._songs, self._artists, self._albums)
+            save_database(self._files, self._songs, self._artists, self._albums)
         logger.info('录入本地音乐库完毕')
 
+    @log_exectime
     def after_scan(self):
         """
         歌曲扫描完成后，对信息进行一些加工，比如
@@ -295,6 +319,11 @@ class Library:
                                              type_=MediaType.image)
                         break
 
+    def start_watcher(self, paths):
+        from fuocore import aio
+        aio.create_task(
+            watcher(paths or [Library.DEFAULT_MUSIC_FOLDER], self._files, self._songs, self._artists, self._albums))
+
 
 class LocalProvider(AbstractProvider):
 
@@ -306,6 +335,8 @@ class LocalProvider(AbstractProvider):
     def scan(self, paths=None, depth=3):
         self.library.scan(paths, depth)
         self.library.after_scan()
+        if ENABLE_WATCHER:
+            self.library.start_watcher(paths)
 
     @property
     def identifier(self):
@@ -349,7 +380,7 @@ class LocalProvider(AbstractProvider):
 
 provider = LocalProvider()
 
-from .schemas import EasyMP3MetadataSongSchema
+from .schemas import EasyMP3MetadataSongSchema, FLACMetadataSongSchema, APEMetadataSongSchema
 from .models import (
     LSearchModel,
     LSongModel,
