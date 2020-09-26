@@ -60,6 +60,7 @@ class FileEventHandler(FileSystemEventHandler):
                 after_add(self.songs.get(self.files.get(fpath)))
 
 
+# FIXME: watcher目前还没有办法正常退出
 def watcher(paths, files, songs, albums, artists):
     observer = Observer()
     for path in paths:
