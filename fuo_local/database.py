@@ -184,5 +184,5 @@ def save_database(files, songs, artists, albums):
     #     result['albums'].append(serialize('json', album, indent=4, as_line=False, brief=False))
 
     import json
-    with open(DATABASE_PATH, 'w') as f:
+    with open(DATABASE_FILE, 'w') as f:
         json.dump(result, f)
