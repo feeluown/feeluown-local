@@ -29,6 +29,8 @@ setup(
         'mutagen>=1.37',
         'marshmallow>=3.0',
         'fuzzywuzzy',
+        'inlp',
+        'watchdog',
     ],
     entry_points={
         'fuo.plugins_v1': [
