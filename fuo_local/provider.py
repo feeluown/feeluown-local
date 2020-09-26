@@ -269,7 +269,8 @@ class Library:
         else:
             for fpath in media_files:
                 add_song(fpath, self._files, self._songs, self._artists, self._albums)
-            save_database(self._files, self._songs, self._artists, self._albums)
+            if ENABLE_DATABASE:
+                save_database(self._files, self._songs, self._artists, self._albums)
         logger.info('录入本地音乐库完毕')
 
     @log_exectime
