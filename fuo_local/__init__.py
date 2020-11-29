@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 import asyncio
 import logging
 from functools import partial
@@ -8,8 +7,10 @@ from fuocore import aio
 
 from .patch import patch_mutagen
 patch_mutagen()
-from .provider import provider
-from .ui import LibraryRenderer
+
+
+from .provider import provider  # noqa: E402
+from .ui import LibraryRenderer  # noqa: E402
 
 __alias__ = '本地音乐'
 __feeluown_version__ = '1.1.0'
