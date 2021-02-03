@@ -7,7 +7,7 @@ from fuocore.models import (
     ArtistModel,
     SearchModel,
 )
-from fuocore.reader import RandomSequentialReader
+from fuocore.reader import wrap
 
 from .provider import provider
 from .utils import read_audio_cover
@@ -61,10 +61,10 @@ class LArtistModel(ArtistModel, LBaseModel):
         return cls.meta.provider.library.get_artist(identifier)
 
     def create_albums_g(self):
-        return RandomSequentialReader.from_list(self.albums)
+        return wrap(self.albums)
 
     def create_contributed_albums_g(self):
-        return RandomSequentialReader.from_list(self.contributed_albums)
+        return wrap(self.contributed_albums)
 
 
 class LSearchModel(SearchModel, LBaseModel):
