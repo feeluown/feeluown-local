@@ -11,6 +11,7 @@ patch_mutagen()
 
 from .provider import provider  # noqa: E402
 from .ui import LibraryRenderer  # noqa: E402
+from .consts import MUSIC_FOLDERS
 
 __alias__ = '本地音乐'
 __feeluown_version__ = '1.1.0'
@@ -40,7 +41,7 @@ def enable(app):
 
     logger.info('Register provider: %s', provider)
     loop = asyncio.get_event_loop()
-    future_scan = loop.run_in_executor(None, provider.scan)
+    future_scan = loop.run_in_executor(None, provider.scan, MUSIC_FOLDERS)
     app.library.register(provider)
     if app.mode & App.GuiMode:
         app.browser.route('/local')(show_provider)

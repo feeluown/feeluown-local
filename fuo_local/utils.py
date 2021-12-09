@@ -1,5 +1,6 @@
 from mutagen.id3 import ID3
 from mutagen.mp4 import MP4, AtomDataType
+from mutagen.flac import FLAC
 
 
 def read_audio_cover(fpath):
@@ -9,7 +10,7 @@ def read_audio_cover(fpath):
         id3 = ID3(fpath)
         apic = id3.get('APIC:')
         if apic is not None:
-            if apic.mime in ('image/jpg', 'img/jpeg'):
+            if apic.mime in ('image/jpg', 'image/jpeg'):
                 fmt = 'jpg'
             else:
                 fmt = 'png'
@@ -27,5 +28,16 @@ def read_audio_cover(fpath):
                 else:
                     fmt = 'png'
                 return cover, fmt
+
+    elif fpath.endswith('flac'):
+        flac = FLAC(fpath)
+        covers = flac.pictures
+        if covers:
+            cover = covers[0]
+            if cover.mime in ('image/jpg', 'image/jpeg'):
+                fmt = 'jpg'
+            else:
+                fmt = 'png'
+            return cover.data, fmt
 
     return None, None

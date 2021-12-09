@@ -16,6 +16,7 @@ from fuocore.media import Media, MediaType
 from fuocore.models import reverse
 
 from .utils import read_audio_cover
+from .consts import FORMATS
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +70,7 @@ class Library:
     def scan(self, paths=None, depth=2):
         """scan media files in all paths
         """
-        song_exts = ['mp3', 'ogg', 'wma', 'm4a', 'm4v']
+        song_exts = FORMATS
         exts = song_exts
         paths = paths or [Library.DEFAULT_MUSIC_FOLDER]
         depth = depth if depth <= 3 else 3
