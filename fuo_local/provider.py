@@ -9,14 +9,14 @@ import logging
 import os
 
 from fuzzywuzzy import process
-from fuocore.provider import AbstractProvider
+from feeluown.library import AbstractProvider
 
-from fuocore.utils import log_exectime
-from fuocore.media import Media, MediaType
-from fuocore.models import reverse
+from feeluown.utils.utils import log_exectime
+from feeluown.media import Media, MediaType
+from feeluown.models import reverse
 
 from .utils import read_audio_cover
-from .consts import FORMATS
+from .consts import DEFAULT_MUSIC_FOLDER, DEFAULT_MUSIC_EXTS
 
 logger = logging.getLogger(__name__)
 
@@ -41,8 +41,6 @@ def scan_directory(directory, exts=None, depth=2):
 
 
 class Library:
-    DEFAULT_MUSIC_FOLDER = os.path.expanduser('~') + '/Music'
-
     def __init__(self):
         self._songs = {}
         self._albums = {}
@@ -67,13 +65,12 @@ class Library:
         return self._artists.get(identifier)
 
     @log_exectime
-    def scan(self, paths=None, depth=2):
+    def scan(self, config, paths, depth=2):
         """scan media files in all paths
         """
-        song_exts = FORMATS
-        exts = song_exts
-        paths = paths or [Library.DEFAULT_MUSIC_FOLDER]
+        paths = paths or [DEFAULT_MUSIC_FOLDER]
         depth = depth if depth <= 3 else 3
+        exts = config.MUSIC_FORMATS or DEFAULT_MUSIC_EXTS
         media_files = []
         logger.info('start scanning...')
         for directory in paths:
@@ -140,8 +137,8 @@ class LocalProvider(AbstractProvider):
 
         self.library = Library()
 
-    def scan(self, paths=None, depth=3):
-        self.library.scan(paths, depth)
+    def scan(self, config, paths=None, depth=3):
+        self.library.scan(config, paths, depth)
         self.library.after_scan()
 
     @property

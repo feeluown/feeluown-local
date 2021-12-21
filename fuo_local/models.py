@@ -7,7 +7,7 @@ from fuocore.models import (
     ArtistModel,
     SearchModel,
 )
-from fuocore.reader import wrap
+from feeluown.utils.reader import wrap
 
 from .provider import provider
 from .utils import read_audio_cover

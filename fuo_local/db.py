@@ -13,6 +13,8 @@ from mutagen.apev2 import APEv2
 from fuocore.utils import elfhash
 from fuocore.models import AlbumType
 
+from .provider import read_audio_cover, Media, reverse, MediaType
+
 from .schemas import (
     EasyMP3MetadataSongSchema,
     FLACMetadataSongSchema,
