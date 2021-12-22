@@ -3,7 +3,7 @@ import asyncio
 import logging
 from functools import partial
 
-from fuocore import aio
+from feeluown.utils import aio
 
 from .patch import patch_mutagen
 patch_mutagen()
@@ -23,6 +23,16 @@ def init_config(config):
     config.deffield('MUSIC_FORMATS', type_=list, default=None, desc='')
 
 
+async def autoload(app):
+    await aio.run_fn(provider.scan,
+                     app.config.fuo_local,
+                     app.config.fuo_local.MUSIC_FOLDERS)
+
+    app.show_msg('本地音乐扫描完毕')
+    if app.mode & app.GuiMode:
+        app.coll_uimgr.refresh()
+
+
 def show_provider(req):
     from .ui import LibraryRenderer
     if hasattr(req, 'ctx'):
@@ -35,16 +45,17 @@ def show_provider(req):
     app.ui.left_panel.my_music_con.hide()
     app.ui.left_panel.playlists_con.hide()
 
-    aio.create_task(app.ui.table_container.set_renderer(
-        LibraryRenderer(provider.songs, provider.albums, provider.artists)))
+    aio.run_afn(
+        app.ui.table_container.set_renderer,
+        LibraryRenderer(provider.songs, provider.albums, provider.artists))
 
 
-def autoload(app):
-    loop = asyncio.get_event_loop()
-    future_scan = loop.run_in_executor(None, provider.scan,
-                                       app.config.fuo_local,
-                                       app.config.fuo_local.MUSIC_FOLDERS)
+def enable(app):
+    logger.info('Register provider: %s', provider)
     app.library.register(provider)
+
+    app.initialized.connect(lambda *args: aio.create_task(autoload(*args)),
+                            weak=False, aioqueue=True)
     if app.mode & app.GuiMode:
         app.browser.route('/local')(show_provider)
         pm = app.pvd_uimgr.create_item(
@@ -55,13 +66,6 @@ def autoload(app):
         )
         pm.clicked.connect(partial(app.browser.goto, uri='/local'), weak=False)
         app.pvd_uimgr.add_item(pm)
-        future_scan.add_done_callback(lambda _: app.coll_uimgr.refresh())
-        future_scan.add_done_callback(lambda _: app.show_msg('本地音乐扫描完毕'))
-
-
-def enable(app):
-    logger.info('Register provider: %s', provider)
-    app.initialized.connect(lambda app: autoload(app), weak=False, aioqueue=True)
 
 
 def disable(app):
