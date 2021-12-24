@@ -10,9 +10,10 @@ from mutagen.easymp4 import EasyMP4
 from mutagen.flac import FLAC
 from mutagen.apev2 import APEv2
 
-from fuocore.utils import elfhash
+from feeluown.utils.utils import elfhash
 from fuocore.models import AlbumType
 
+from .lans_helpers import core_lans
 from .provider import read_audio_cover, Media, reverse, MediaType
 
 from .schemas import (
@@ -65,7 +66,7 @@ def create_album(identifier, name, cover):
     return album
 
 
-def add_song(fpath, g_songs, g_artists, g_albums, spliter, expand_artist_songs):
+def add_song(fpath, g_songs, g_artists, g_albums, lans='auto', spliter='', expand_artist_songs=False):
     """
     parse music file metadata with Easymp3 and return a song
     model.
@@ -89,10 +90,10 @@ def add_song(fpath, g_songs, g_artists, g_albums, spliter, expand_artist_songs):
 
     metadata_dict = dict(metadata)
     for key in metadata.keys():
-        metadata_dict[key] = metadata_dict[key][0]
+        metadata_dict[key] = core_lans(metadata_dict[key][0], lans)
     if 'title' not in metadata_dict:
         title = os.path.split(fpath)[-1].split('.')[0]
-        metadata_dict['title'] = title
+        metadata_dict['title'] = core_lans(title, lans)
     metadata_dict.update(dict(
         url=fpath,
         duration=metadata.info.length * 1000  # milesecond
