@@ -11,12 +11,12 @@ import os
 from fuzzywuzzy import process
 from feeluown.library import AbstractProvider
 
+from feeluown.utils import aio
 from feeluown.utils.utils import log_exectime
 from feeluown.media import Media, MediaType
 from feeluown.models import reverse
 
 from .utils import read_audio_cover
-from .consts import DEFAULT_MUSIC_FOLDER, DEFAULT_MUSIC_EXTS
 
 logger = logging.getLogger(__name__)
 
@@ -65,12 +65,9 @@ class Library:
         return self._artists.get(identifier)
 
     @log_exectime
-    def scan(self, config, paths, depth=2):
+    def scan(self, config, paths, depth, exts):
         """scan media files in all paths
         """
-        paths = paths or [DEFAULT_MUSIC_FOLDER]
-        depth = depth if depth <= 3 else 3
-        exts = config.MUSIC_FORMATS or DEFAULT_MUSIC_EXTS
         media_files = []
         logger.info('start scanning...')
         for directory in paths:
@@ -79,7 +76,8 @@ class Library:
         logger.info(f'scanning finished, {len(media_files)} files in total')
 
         for fpath in media_files:
-            add_song(fpath, self._songs, self._artists, self._albums)
+            add_song(fpath, self._songs, self._artists, self._albums,
+                     config.IDENTIFIER_SPLITER, config.EXPAND_ARTIST_SONGS)
         logger.info('录入本地音乐库完毕')
 
     def after_scan(self):
@@ -137,8 +135,9 @@ class LocalProvider(AbstractProvider):
 
         self.library = Library()
 
-    def scan(self, config, paths=None, depth=3):
-        self.library.scan(config, paths, depth)
+    def scan(self, config, paths, depth=3):
+        exts = config.MUSIC_FORMATS
+        self.library.scan(config, paths, depth, exts)
         self.library.after_scan()
 
     @property

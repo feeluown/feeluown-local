@@ -65,7 +65,7 @@ def create_album(identifier, name, cover):
     return album
 
 
-def add_song(fpath, g_songs, g_artists, g_albums):
+def add_song(fpath, g_songs, g_artists, g_albums, spliter, expand_artist_songs):
     """
     parse music file metadata with Easymp3 and return a song
     model.
@@ -121,8 +121,8 @@ def add_song(fpath, g_songs, g_artists, g_albums):
 
     # 生成 song model
     # 用来生成 id 的字符串应该尽量减少无用信息，这样或许能减少 id 冲突概率
-    # 加入分隔符"-"在一定概率上更能确保不发生哈希值重复
-    song_id_str = '-'.join([title, artists_name, album_name, str(int(duration))])
+    # 加入分隔符'-'在一定概率上更能确保不发生哈希值重复
+    song_id_str = spliter.join([title, artists_name, album_name, str(int(duration))])
     song_id = gen_id(song_id_str)
     if song_id not in g_songs:
         # 剩下 album, lyric 三个字段没有初始化
@@ -194,8 +194,8 @@ def add_song(fpath, g_songs, g_artists, g_albums):
             artist.contributed_albums.append(album)
 
     # 处理专辑歌手的歌曲信息: 有些作词人出合辑很少出现在歌曲歌手里(可选)
-    # if song not in album_artist.songs:
-    #     album_artist.songs.append(song)
+    if expand_artist_songs and song not in album_artist.songs:
+        album_artist.songs.append(song)
 
 
 class DB:

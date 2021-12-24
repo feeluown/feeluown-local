@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import asyncio
 import logging
 from functools import partial
 
@@ -8,7 +7,9 @@ from feeluown.utils import aio
 from .patch import patch_mutagen
 patch_mutagen()
 
+from .consts import DEFAULT_MUSIC_FOLDER, DEFAULT_MUSIC_EXTS
 from .provider import provider
+
 
 __alias__ = '本地音乐'
 __feeluown_version__ = '1.1.0'
@@ -19,8 +20,10 @@ logger = logging.getLogger(__name__)
 
 
 def init_config(config):
-    config.deffield('MUSIC_FOLDERS', type_=list, default=None, desc='')
-    config.deffield('MUSIC_FORMATS', type_=list, default=None, desc='')
+    config.deffield('MUSIC_FOLDERS', type_=list, default=[DEFAULT_MUSIC_FOLDER], desc='')
+    config.deffield('MUSIC_FORMATS', type_=list, default=DEFAULT_MUSIC_EXTS, desc='')
+    config.deffield('IDENTIFIER_SPLITER', type_=str, default='', desc='')
+    config.deffield('EXPAND_ARTIST_SONGS', type_=bool, default=False, desc='')
 
 
 async def autoload(app):
