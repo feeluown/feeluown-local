@@ -57,6 +57,7 @@ def show_provider(req):
 def enable(app):
     logger.info('Register provider: %s', provider)
     app.library.register(provider)
+    provider.initialize(app)
 
     app.initialized.connect(lambda *args: aio.create_task(autoload(*args)),
                             weak=False, aioqueue=True)
