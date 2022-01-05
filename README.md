@@ -17,7 +17,7 @@ def load_plugin_rcfiles(plugin):
         config.fuo_local.MUSIC_FOLDERS = [os.path.expanduser('~') + '/Music']
         config.fuo_local.MUSIC_FORMATS = ['mp3', 'ogg', 'wma', 'm4a', 'm4v', 'mp4', 'flac']
 
-when('app.plugin_mgr.about_to_enable', load_plugin_rcfiles, use_symbol=True)
+when('app.plugin_mgr.about_to_enable', load_plugin_rcfiles, use_symbol=True, aioqueue=False)
 ```
 
 

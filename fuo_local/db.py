@@ -66,7 +66,7 @@ def create_album(identifier, name, cover):
     return album
 
 
-def add_song(fpath, g_songs, g_artists, g_albums, lans='auto', spliter='', expand_artist_songs=False):
+def add_song(fpath, g_songs, g_artists, g_albums, lans='auto', splitter='', expand_artist_songs=False):
     """
     parse music file metadata with Easymp3 and return a song
     model.
@@ -123,7 +123,7 @@ def add_song(fpath, g_songs, g_artists, g_albums, lans='auto', spliter='', expan
     # 生成 song model
     # 用来生成 id 的字符串应该尽量减少无用信息，这样或许能减少 id 冲突概率
     # 加入分隔符'-'在一定概率上更能确保不发生哈希值重复
-    song_id_str = spliter.join([title, artists_name, album_name, str(int(duration))])
+    song_id_str = splitter.join([title, artists_name, album_name, str(int(duration))])
     song_id = gen_id(song_id_str)
     if song_id not in g_songs:
         # 剩下 album, lyric 三个字段没有初始化
@@ -155,7 +155,7 @@ def add_song(fpath, g_songs, g_artists, g_albums, lans='auto', spliter='', expan
         album_artist = g_artists[album_artist_id]
 
     # 生成 album model
-    album_id_str = '-'.join([album_name, album_artist_name])
+    album_id_str = splitter.join([album_name, album_artist_name])
     album_id = gen_id(album_id_str)
     # cover_data, cover_fmt = read_audio_cover(fpath)
     # if cover_data is None:
