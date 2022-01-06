@@ -80,7 +80,7 @@ class Library:
         for fpath in media_files:
             add_song(fpath, self._songs, self._artists, self._albums,
                      config.CORE_LANGUAGE,
-                     config.IDENTIFIER_SPLITTER,
+                     config.IDENTIFIER_DELIMITER,
                      config.EXPAND_ARTIST_SONGS)
         logger.info('录入本地音乐库完毕')
 

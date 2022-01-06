@@ -23,7 +23,7 @@ def init_config(config):
     config.deffield('MUSIC_FOLDERS', type_=list, default=[DEFAULT_MUSIC_FOLDER], desc='')
     config.deffield('MUSIC_FORMATS', type_=list, default=DEFAULT_MUSIC_EXTS, desc='')
     config.deffield('CORE_LANGUAGE', type_=str, default='auto', desc='')
-    config.deffield('IDENTIFIER_SPLITTER', type_=str, default='', desc='')
+    config.deffield('IDENTIFIER_DELIMITER', type_=str, default='', desc='')
     config.deffield('EXPAND_ARTIST_SONGS', type_=bool, default=False, desc='')
 
 
