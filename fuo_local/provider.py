@@ -9,15 +9,18 @@ import logging
 import os
 
 from fuzzywuzzy import process
-from fuocore.provider import AbstractProvider
+from feeluown.library import AbstractProvider, ProviderV2, ProviderFlags as PF
 
-from fuocore.utils import log_exectime
-from fuocore.media import Media, MediaType
-from fuocore.models import reverse
+from feeluown.utils import aio
+from feeluown.utils.utils import log_exectime
+from feeluown.media import Media, MediaType
+from feeluown.models import reverse
+from feeluown.models import ModelType, SearchType
 
 from .utils import read_audio_cover
 
 logger = logging.getLogger(__name__)
+SOURCE = 'local'
 
 
 def scan_directory(directory, exts=None, depth=2):
@@ -40,8 +43,6 @@ def scan_directory(directory, exts=None, depth=2):
 
 
 class Library:
-    DEFAULT_MUSIC_FOLDER = os.path.expanduser('~') + '/Music'
-
     def __init__(self):
         self._songs = {}
         self._albums = {}
@@ -66,13 +67,9 @@ class Library:
         return self._artists.get(identifier)
 
     @log_exectime
-    def scan(self, paths=None, depth=2):
+    def scan(self, config, paths, depth, exts):
         """scan media files in all paths
         """
-        song_exts = ['mp3', 'ogg', 'wma', 'm4a', 'm4v']
-        exts = song_exts
-        paths = paths or [Library.DEFAULT_MUSIC_FOLDER]
-        depth = depth if depth <= 3 else 3
         media_files = []
         logger.info('start scanning...')
         for directory in paths:
@@ -81,7 +78,10 @@ class Library:
         logger.info(f'scanning finished, {len(media_files)} files in total')
 
         for fpath in media_files:
-            add_song(fpath, self._songs, self._artists, self._albums)
+            add_song(fpath, self._songs, self._artists, self._albums,
+                     config.CORE_LANGUAGE,
+                     config.IDENTIFIER_DELIMITER,
+                     config.EXPAND_ARTIST_SONGS)
         logger.info('录入本地音乐库完毕')
 
     def after_scan(self):
@@ -132,20 +132,31 @@ class Library:
                         break
 
 
-class LocalProvider(AbstractProvider):
+class LocalProvider(AbstractProvider, ProviderV2):
+    class meta:
+        identifier = SOURCE
+        name = '本地音乐'
+        flags = {
+            ModelType.song: (PF.lyric),
+        }
 
     def __init__(self):
         super().__init__()
 
+        self._app = None
         self.library = Library()
 
-    def scan(self, paths=None, depth=3):
-        self.library.scan(paths, depth)
+    def initialize(self, app):
+        self._app = app
+
+    def scan(self, config, paths, depth=3):
+        exts = config.MUSIC_FORMATS
+        self.library.scan(config, paths, depth, exts)
         self.library.after_scan()
 
     @property
     def identifier(self):
-        return 'local'
+        return SOURCE
 
     @property
     def name(self):
@@ -181,6 +192,19 @@ class LocalProvider(AbstractProvider):
             if score > 80:
                 result_songs.append(repr_song_map[each])
         return LSearchModel(q=keyword, songs=result_songs)
+
+    def song_get_lyric(self, song):
+        # 歌词获取报错的 workaround
+        if self._app is None:
+            return None
+        provider = self._app.library.get('qqmusic')
+        if provider is None:
+            return None
+        result = provider.search(f'{song.title} {song.artists_name}', type_=SearchType.so)
+        songs = result.songs
+        if len(songs) < 1:
+            return None
+        return provider.song_get_lyric(songs[0]) or songs[0].lyric
 
 
 provider = LocalProvider()

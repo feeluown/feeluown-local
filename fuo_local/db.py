@@ -7,11 +7,20 @@ from marshmallow.exceptions import ValidationError
 from mutagen import MutagenError
 from mutagen.mp3 import EasyMP3
 from mutagen.easymp4 import EasyMP4
+from mutagen.flac import FLAC
+from mutagen.apev2 import APEv2
 
-from fuocore.utils import elfhash
+from feeluown.utils.utils import elfhash
 from fuocore.models import AlbumType
 
-from .schemas import EasyMP3MetadataSongSchema
+from .lans_helpers import core_lans
+from .provider import read_audio_cover, Media, reverse, MediaType
+
+from .schemas import (
+    EasyMP3MetadataSongSchema,
+    FLACMetadataSongSchema,
+    APEMetadataSongSchema,
+)
 from .models import (
     LSongModel,
     LAlbumModel,
@@ -57,7 +66,7 @@ def create_album(identifier, name, cover):
     return album
 
 
-def add_song(fpath, g_songs, g_artists, g_albums):
+def add_song(fpath, g_songs, g_artists, g_albums, lans='auto', delimiter='', expand_artist_songs=False):
     """
     parse music file metadata with Easymp3 and return a song
     model.
@@ -65,8 +74,14 @@ def add_song(fpath, g_songs, g_artists, g_albums):
     try:
         if fpath.endswith('mp3') or fpath.endswith('ogg') or fpath.endswith('wma'):
             metadata = EasyMP3(fpath)
-        elif fpath.endswith('m4a') or fpath.endswith('m4v'):
+        elif fpath.endswith('m4a') or fpath.endswith('m4v') or fpath.endswith('mp4'):
             metadata = EasyMP4(fpath)
+        elif fpath.endswith('flac'):
+            metadata = FLAC(fpath)
+        elif fpath.endswith('ape'):
+            metadata = APEv2(fpath)
+        elif fpath.endswith('wav'):
+            metadata = dict()
     except MutagenError as e:
         logger.warning(
             'Mutagen parse metadata failed, ignore.\n'
@@ -75,17 +90,22 @@ def add_song(fpath, g_songs, g_artists, g_albums):
 
     metadata_dict = dict(metadata)
     for key in metadata.keys():
-        metadata_dict[key] = metadata_dict[key][0]
+        metadata_dict[key] = core_lans(metadata_dict[key][0], lans)
     if 'title' not in metadata_dict:
         title = os.path.split(fpath)[-1].split('.')[0]
-        metadata_dict['title'] = title
+        metadata_dict['title'] = core_lans(title, lans)
     metadata_dict.update(dict(
         url=fpath,
         duration=metadata.info.length * 1000  # milesecond
     ))
 
     try:
-        data = EasyMP3MetadataSongSchema().load(metadata_dict)
+        if fpath.endswith('flac'):
+            data = FLACMetadataSongSchema().load(metadata_dict)
+        elif fpath.endswith('ape'):
+            data = APEMetadataSongSchema().load(metadata_dict)
+        else:
+            data = EasyMP3MetadataSongSchema().load(metadata_dict)
     except ValidationError:
         logger.exception('解析音乐文件({}) 元数据失败'.format(fpath))
         return
@@ -102,7 +122,8 @@ def add_song(fpath, g_songs, g_artists, g_albums):
 
     # 生成 song model
     # 用来生成 id 的字符串应该尽量减少无用信息，这样或许能减少 id 冲突概率
-    song_id_str = ''.join([title, artists_name, album_name, str(int(duration))])
+    # 加入分隔符'-'在一定概率上更能确保不发生哈希值重复
+    song_id_str = delimiter.join([title, artists_name, album_name, str(int(duration))])
     song_id = gen_id(song_id_str)
     if song_id not in g_songs:
         # 剩下 album, lyric 三个字段没有初始化
@@ -122,7 +143,7 @@ def add_song(fpath, g_songs, g_artists, g_albums):
         g_songs[song_id] = song
     else:
         song = g_songs[song_id]
-        logger.debug('Duplicate song: %s %s', song.url, fpath)
+        logger.warning('Duplicate song: %s %s', song.url, fpath)
         return
 
     # 生成 album artist model
@@ -134,7 +155,7 @@ def add_song(fpath, g_songs, g_artists, g_albums):
         album_artist = g_artists[album_artist_id]
 
     # 生成 album model
-    album_id_str = album_name + album_artist_name
+    album_id_str = delimiter.join([album_name, album_artist_name])
     album_id = gen_id(album_id_str)
     # cover_data, cover_fmt = read_audio_cover(fpath)
     # if cover_data is None:
@@ -174,8 +195,8 @@ def add_song(fpath, g_songs, g_artists, g_albums):
             artist.contributed_albums.append(album)
 
     # 处理专辑歌手的歌曲信息: 有些作词人出合辑很少出现在歌曲歌手里(可选)
-    # if song not in album_artist.songs:
-    #     album_artist.songs.append(song)
+    if expand_artist_songs and song not in album_artist.songs:
+        album_artist.songs.append(song)
 
 
 class DB:

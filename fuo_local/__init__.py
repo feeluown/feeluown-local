@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
-import asyncio
 import logging
 from functools import partial
 
-from fuocore import aio
+from feeluown.utils import aio
 
 from .patch import patch_mutagen
 patch_mutagen()
 
+from .consts import DEFAULT_MUSIC_FOLDER, DEFAULT_MUSIC_EXTS
+from .provider import provider
 
-from .provider import provider  # noqa: E402
-from .ui import LibraryRenderer  # noqa: E402
 
 __alias__ = '本地音乐'
 __feeluown_version__ = '1.1.0'
@@ -20,7 +19,26 @@ __desc__ = '本地音乐'
 logger = logging.getLogger(__name__)
 
 
+def init_config(config):
+    config.deffield('MUSIC_FOLDERS', type_=list, default=[DEFAULT_MUSIC_FOLDER], desc='')
+    config.deffield('MUSIC_FORMATS', type_=list, default=DEFAULT_MUSIC_EXTS, desc='')
+    config.deffield('CORE_LANGUAGE', type_=str, default='auto', desc='')
+    config.deffield('IDENTIFIER_DELIMITER', type_=str, default='', desc='')
+    config.deffield('EXPAND_ARTIST_SONGS', type_=bool, default=False, desc='')
+
+
+async def autoload(app):
+    await aio.run_fn(provider.scan,
+                     app.config.fuo_local,
+                     app.config.fuo_local.MUSIC_FOLDERS)
+
+    app.show_msg('本地音乐扫描完毕')
+    if app.mode & app.GuiMode:
+        app.coll_uimgr.refresh()
+
+
 def show_provider(req):
+    from .ui import LibraryRenderer
     if hasattr(req, 'ctx'):
         app = req.ctx['app']
     else:
@@ -31,18 +49,19 @@ def show_provider(req):
     app.ui.left_panel.my_music_con.hide()
     app.ui.left_panel.playlists_con.hide()
 
-    aio.create_task(app.ui.table_container.set_renderer(
-        LibraryRenderer(provider.songs, provider.albums, provider.artists)))
+    aio.run_afn(
+        app.ui.table_container.set_renderer,
+        LibraryRenderer(provider.songs, provider.albums, provider.artists))
 
 
 def enable(app):
-    from feeluown.app import App
-
     logger.info('Register provider: %s', provider)
-    loop = asyncio.get_event_loop()
-    future_scan = loop.run_in_executor(None, provider.scan)
     app.library.register(provider)
-    if app.mode & App.GuiMode:
+    provider.initialize(app)
+
+    app.initialized.connect(lambda *args: aio.create_task(autoload(*args)),
+                            weak=False, aioqueue=False)
+    if app.mode & app.GuiMode:
         app.browser.route('/local')(show_provider)
         pm = app.pvd_uimgr.create_item(
             name=provider.identifier,
@@ -52,8 +71,6 @@ def enable(app):
         )
         pm.clicked.connect(partial(app.browser.goto, uri='/local'), weak=False)
         app.pvd_uimgr.add_item(pm)
-        future_scan.add_done_callback(lambda _: app.coll_uimgr.refresh())
-        future_scan.add_done_callback(lambda _: app.show_msg('本地音乐扫描完毕'))
 
 
 def disable(app):

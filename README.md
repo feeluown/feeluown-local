@@ -6,6 +6,22 @@
 pip3 install fuo-local
 ```
 
+## 配置
+
+```python
+# In ~/.fuorc
+
+import os
+def load_plugin_rcfiles(plugin):
+    if plugin.name == 'fuo_local':
+        config.fuo_local.MUSIC_FOLDERS = [os.path.expanduser('~') + '/Music']
+        config.fuo_local.MUSIC_FORMATS = ['mp3', 'ogg', 'wma', 'm4a', 'm4v', 'mp4', 'flac']
+
+when('app.plugin_mgr.about_to_enable', load_plugin_rcfiles, use_symbol=True, aioqueue=False)
+```
+
+
+
 ## TODO
 
 此插件目前功能非常基础，有很多可以改进的地方，从功能到性能。
