@@ -34,6 +34,10 @@ when('app.plugin_mgr.about_to_enable', load_plugin_rcfiles, use_symbol=True, aio
 
 ## changelog
 
+### 0.3 (2021-01-23)
+- 适配 feeluown>=3.8.1
+- 支持更多音乐格式
+
 ### 0.2 (2019-11-26)
 - 适配 feeluown>=3.2a0
 - 使用 3.x 的 marshmallow
