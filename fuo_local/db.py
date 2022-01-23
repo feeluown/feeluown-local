@@ -11,7 +11,7 @@ from mutagen.flac import FLAC
 from mutagen.apev2 import APEv2
 
 from feeluown.utils.utils import elfhash
-from fuocore.models import AlbumType
+from feeluown.models import AlbumType
 
 from .lans_helpers import core_lans
 from .provider import read_audio_cover, Media, reverse, MediaType

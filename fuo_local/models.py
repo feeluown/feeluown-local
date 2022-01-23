@@ -1,6 +1,6 @@
 import logging
 
-from fuocore.models import (
+from feeluown.models import (
     BaseModel,
     SongModel,
     AlbumModel,
