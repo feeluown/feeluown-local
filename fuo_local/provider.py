@@ -194,6 +194,7 @@ class LocalProvider(AbstractProvider, ProviderV2):
         return LSearchModel(q=keyword, songs=result_songs)
 
     def song_get_lyric(self, song):
+        return None
         # 歌词获取报错的 workaround
         if self._app is None:
             return None
