@@ -6,7 +6,7 @@ from mutagen.flac import FLAC
 def read_audio_cover(fpath):
     """read audio cover binary data and format"""
 
-    if fpath.endswith('mp3') or fpath.endswith('ogg') or fpath.endswith('wma'):
+    if fpath.endswith('mp3'):
         mp3 = MP3(fpath)
         apic = mp3.get('APIC:')
         if apic is not None:
