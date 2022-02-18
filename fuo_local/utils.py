@@ -1,4 +1,4 @@
-from mutagen.id3 import ID3
+from mutagen.mp3 import MP3
 from mutagen.mp4 import MP4, AtomDataType
 from mutagen.flac import FLAC
 
@@ -6,9 +6,9 @@ from mutagen.flac import FLAC
 def read_audio_cover(fpath):
     """read audio cover binary data and format"""
 
-    if fpath.endswith('mp3') or fpath.endswith('ogg') or fpath.endswith('wma'):
-        id3 = ID3(fpath)
-        apic = id3.get('APIC:')
+    if fpath.endswith('mp3'):
+        mp3 = MP3(fpath)
+        apic = mp3.get('APIC:')
         if apic is not None:
             if apic.mime in ('image/jpg', 'image/jpeg'):
                 fmt = 'jpg'
