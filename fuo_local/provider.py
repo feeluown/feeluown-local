@@ -137,7 +137,7 @@ class LocalProvider(AbstractProvider, ProviderV2):
         identifier = SOURCE
         name = '本地音乐'
         flags = {
-            ModelType.song: (PF.lyric),
+            # ModelType.song: (PF.lyric),
         }
 
     def __init__(self):
@@ -195,17 +195,6 @@ class LocalProvider(AbstractProvider, ProviderV2):
 
     def song_get_lyric(self, song):
         return None
-        # 歌词获取报错的 workaround
-        if self._app is None:
-            return None
-        provider = self._app.library.get('qqmusic')
-        if provider is None:
-            return None
-        result = provider.search(f'{song.title} {song.artists_name}', type_=SearchType.so)
-        songs = result.songs
-        if len(songs) < 1:
-            return None
-        return provider.song_get_lyric(songs[0]) or songs[0].lyric
 
 
 provider = LocalProvider()
