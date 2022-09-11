@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import re
+from feeluown.models.models import _get_artists_name
 
 from marshmallow.exceptions import ValidationError
 from mutagen import MutagenError
@@ -16,6 +17,8 @@ from feeluown.utils.utils import elfhash, log_exectime
 from feeluown.models import AlbumType
 from feeluown.media import Media, MediaType
 from feeluown.models import reverse
+from feeluown.library import SongModel, AlbumModel, ArtistModel
+from feeluown.library import BriefAlbumModel, BriefArtistModel
 
 from .utils import read_audio_cover
 from .lans_helpers import core_lans
@@ -26,6 +29,24 @@ from .schemas import (
 )
 
 logger = logging.getLogger(__name__)
+SOURCE = 'local'
+
+
+def to_brief_album(album):
+    return BriefAlbumModel(
+        identifier=album.identifier,
+        source=album.source,
+        name=album.name,
+        artists_name=album.artists_name,
+    )
+
+
+def to_brief_artist(artist):
+    return BriefArtistModel(
+        identifier=artist.identifier,
+        source=artist.source,
+        name=artist.name,
+    )
 
 
 def gen_id(s):
@@ -33,28 +54,23 @@ def gen_id(s):
 
 
 def create_artist(identifier, name):
-    from .models import LArtistModel
-
-    return LArtistModel(identifier=identifier,
-                        name=name,
-                        songs=[],
-                        albums=[],
-                        contributed_albums=[],
-                        desc='',
-                        cover='',)
+    return ArtistModel(identifier=identifier,
+                       source=SOURCE,
+                       name=name,
+                       pic_url='',
+                       aliases=[],
+                       hot_songs=[],
+                       description='')
 
 
 def create_album(identifier, name, cover):
-    """create album model with album name
-    """
-    from .models import LAlbumModel
-
-    album = LAlbumModel(identifier=identifier,
-                        name=name,
-                        songs=[],
-                        artists=[],
-                        desc='',
-                        cover=cover,)
+    album = AlbumModel(identifier=identifier,
+                       source=SOURCE,
+                       name=name,
+                       cover=cover or '',
+                       songs=[],
+                       artists=[],
+                       description='')
     # guess album type by its name
     #
     # album name which contains following string are `Single`
@@ -68,12 +84,14 @@ def create_album(identifier, name, cover):
     return album
 
 
-def add_song(fpath, g_songs, g_artists, g_albums, lans='auto', delimiter='', expand_artist_songs=False):
+def add_song(fpath,
+             g_songs, g_artists, g_albums,
+             g_file_song,
+             lans='auto', delimiter='', expand_artist_songs=False):
     """
     parse music file metadata with Easymp3 and return a song
     model.
     """
-    from .models import LSongModel
 
     try:
         if fpath.endswith('mp3') or fpath.endswith('ogg') or fpath.endswith('wma'):
@@ -130,24 +148,22 @@ def add_song(fpath, g_songs, g_artists, g_albums, lans='auto', delimiter='', exp
     song_id_str = delimiter.join([title, artists_name, album_name, str(int(duration))])
     song_id = gen_id(song_id_str)
     if song_id not in g_songs:
-        # 剩下 album, lyric 三个字段没有初始化
-        song = LSongModel(identifier=song_id,
-                          artists=[],
-                          title=title,
-                          url=fpath,
-                          duration=duration,
-                          comments=[],
-                          # 下面这些字段不向外暴露
-                          genre=data['genre'],
-                          cover=data['cover'],
-                          date=data['date'],
-                          desc=data['desc'],
-                          disc=data['disc'],
-                          track=data['track'])
+        song = SongModel(identifier=song_id,
+                         source=SOURCE,
+                         artists=[],
+                         title=title,
+                         duration=duration,
+                         genre=data['genre'],
+                         # cover=data['cover'],
+                         # date=data['date'],
+                         # desc=data['desc'],
+                         disc=data['disc'],
+                         track=data['track'])
+        g_file_song[fpath] = song_id
         g_songs[song_id] = song
     else:
         song = g_songs[song_id]
-        logger.warning('Duplicate song: %s %s', song.url, fpath)
+        logger.warning('Duplicate song: %s', fpath)
         return
 
     # 生成 album artist model
@@ -173,15 +189,13 @@ def add_song(fpath, g_songs, g_artists, g_albums, lans='auto', delimiter='', exp
         album = g_albums[album_id]
 
     # 处理专辑的歌手信息和歌曲信息，专辑歌手的专辑列表信息
-    if album not in album_artist.albums:
-        album_artist.albums.append(album)
     if album_artist not in album.artists:
         album.artists.append(album_artist)
     if song not in album.songs:
         album.songs.append(song)
 
     # 处理歌曲的歌手和专辑信息，以及歌手的歌曲列表和参与作品
-    song.album = album
+    song.album = to_brief_album(album)
     for artist_name in artist_name_list:
         artist_id = gen_id(artist_name)
         if artist_id in g_artists:
@@ -190,18 +204,18 @@ def add_song(fpath, g_songs, g_artists, g_albums, lans='auto', delimiter='', exp
             artist = create_artist(identifier=artist_id, name=artist_name)
             g_artists[artist_id] = artist
         if artist not in song.artists:
-            song.artists.append(artist)
-        if song not in artist.songs:
-            artist.songs.append(song)
+            song.artists.append(to_brief_artist(artist))
+        if song not in artist.hot_songs:
+            artist.hot_songs.append(song)
 
         # 处理歌曲歌手的参与作品信息(不与前面的重复)
-        if album not in artist.albums and album not in artist.contributed_albums:
-            artist.contributed_albums.append(album)
+        # TODO(this_pr)
+        # if album not in artist.albums and album not in artist.contributed_albums:
+        #     artist.contributed_albums.append(album)
 
     # 处理专辑歌手的歌曲信息: 有些作词人出合辑很少出现在歌曲歌手里(可选)
-    if expand_artist_songs and song not in album_artist.songs:
-        album_artist.songs.append(song)
-
+    if expand_artist_songs and song not in album_artist.hot_songs:
+        album_artist.hot_songs.append(song)
 
 
 def scan_directory(directory, exts=None, depth=2):
@@ -243,9 +257,11 @@ class DB:
         self._fileset = set()  # media files
         self._fpath = fpath
 
-        self._songs = {}
-        self._albums = {}
-        self._artists = {}
+        self._file_song = {}      # {fpath: song_id}
+        self._songs = {}          # {song_id: song}
+        self._albums = {}         # {album_id: album)
+        self._artists = {}        # {artist_id: artist)
+        self._artist_albums = {}  # {artist_id: [album...])
 
     def flush(self):
         """flush the changes into db file"""
@@ -264,7 +280,9 @@ class DB:
 
     def add(self, fpath):
         """add media file to database"""
-        add_song(fpath, self._songs, self._artists, self._albums)
+        add_song(fpath,
+                 self._songs, self._artists, self._albums,
+                 self._file_song)
 
     def remove(self, fpath):
         """add media file to database"""
@@ -302,6 +320,7 @@ class DB:
 
         for fpath in media_files:
             add_song(fpath, self._songs, self._artists, self._albums,
+                     self._file_song,
                      config.CORE_LANGUAGE,
                      config.IDENTIFIER_DELIMITER,
                      config.EXPAND_ARTIST_SONGS)
@@ -315,41 +334,43 @@ class DB:
         """
         def sort_album_func(album):
             if album.songs:
-                return (album.songs[0].date is not None, album.songs[0].date)
+                return (album.songs[0].year != 0, album.songs[0].year)
             return (False, '0')
 
         for album in self._albums.values():
             try:
                 album.songs.sort(key=lambda x: (int(x.disc.split('/')[0]),
                                                 int(x.track.split('/')[0])))
-                if album.name != 'Unknown':
-                    cover_data, _ = read_audio_cover(album.songs[0].url)
-                    if cover_data:
-                        cover = Media(reverse(album.songs[0], '/cover/data'),
-                                      type_=MediaType.image)
-                    else:
-                        cover = None
-                    album.cover = cover
+                # TODO(this_pr)
+                # if album.name != 'Unknown':
+                #     cover_data, _ = read_audio_cover(album.songs[0].url)
+                #     if cover_data:
+                #         cover = Media(reverse(album.songs[0], '/cover/data'),
+                #                       type_=MediaType.image)
+                #     else:
+                #         cover = None
+                #     album.cover = cover
             except:  # noqa
                 logger.exception('Sort album songs failed.')
 
         for artist in self._artists.values():
-            if artist.albums:
-                artist.albums.sort(key=sort_album_func, reverse=True)
-                artist.cover = artist.albums[0].cover
-            if artist.contributed_albums:
-                artist.contributed_albums.sort(key=sort_album_func, reverse=True)
-            if artist.songs:
-                # sort artist songs
-                artist.songs.sort(key=lambda x: x.title)
+            # if artist.albums:
+            #     artist.albums.sort(key=sort_album_func, reverse=True)
+            #     artist.cover = artist.albums[0].cover
+            # if artist.contributed_albums:
+            #     artist.contributed_albums.sort(key=sort_album_func, reverse=True)
+            if artist.hot_songs:
+                # sort artist.hot_songs
+                artist.hot_songs.sort(key=lambda x: x.title)
                 # use song cover as artist cover
                 # https://github.com/feeluown/feeluown-local/pull/3/files#r362126996
-                songs_with_unknown_album = [song for song in artist.songs
+                songs_with_unknown_album = [song for song in artist.hot_songs
                                             if song.album_name == 'Unknown']
-                for song in sorted(songs_with_unknown_album,
-                                   key=lambda x: (x.date is not None, x.date),
-                                   reverse=True):
-                    if read_audio_cover(song.url)[0]:
-                        artist.cover = Media(reverse(song, '/cover/data'),
-                                             type_=MediaType.image)
-                        break
+                # TODO(this_pr)
+                #for song in sorted(songs_with_unknown_album,
+                #                   key=lambda x: (x.year != 0, x.year),
+                #                   reverse=True):
+                #    if read_audio_cover(song.url)[0]:
+                #        artist.cover = Media(reverse(song, '/cover/data'),
+                #                             type_=MediaType.image)
+                #        break

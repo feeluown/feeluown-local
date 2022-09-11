@@ -47,7 +47,8 @@ class LocalProvider(AbstractProvider, ProviderV2):
     # @route('/cover/data')
     # TODO: read audio cover
 
-    # TODO: implements contributed_albums
+    # TODO: list artist's contributed_albums
+    # TODO: list artist's albums
 
     @property
     def identifier(self):
