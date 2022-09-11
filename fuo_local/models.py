@@ -9,8 +9,8 @@ from feeluown.models import (
 )
 from feeluown.utils.reader import wrap
 
-from .provider import provider
 from .utils import read_audio_cover
+from .provider import provider
 
 logger = logging.getLogger(__name__)
 
@@ -33,11 +33,11 @@ class LSongModel(SongModel, LBaseModel):
 
     @classmethod
     def get(cls, identifier):
-        return cls.meta.provider.library.get_song(identifier)
+        return cls.meta.provider.db.get_song(identifier)
 
     @classmethod
     def list(cls, identifier_list):
-        return map(cls.meta.provider.library._songs.get, identifier_list)
+        return map(cls.meta.provider.db._songs.get, identifier_list)
 
     def resolve__cover_data(self, **kwargs):
         return read_audio_cover(self.url)[0]
@@ -47,7 +47,7 @@ class LAlbumModel(AlbumModel, LBaseModel):
 
     @classmethod
     def get(cls, identifier):
-        return cls.meta.provider.library.get_album(identifier)
+        return cls.meta.provider.db.get_album(identifier)
 
 
 class LArtistModel(ArtistModel, LBaseModel):
@@ -58,7 +58,7 @@ class LArtistModel(ArtistModel, LBaseModel):
 
     @classmethod
     def get(cls, identifier):
-        return cls.meta.provider.library.get_artist(identifier)
+        return cls.meta.provider.db.get_artist(identifier)
 
     def create_albums_g(self):
         return wrap(self.albums)
