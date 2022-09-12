@@ -14,12 +14,10 @@ from mutagen.apev2 import APEv2
 
 from feeluown.serializers import serialize
 from feeluown.utils.utils import elfhash, log_exectime
-from feeluown.media import Media, MediaType
-from feeluown.models import AlbumType, reverse
-from feeluown.library import SongModel, AlbumModel, ArtistModel
-from feeluown.library import BriefAlbumModel, BriefArtistModel
+from feeluown.library import SongModel, AlbumModel, ArtistModel, AlbumType
+from feeluown.library import BriefAlbumModel, BriefArtistModel, BriefSongModel
+from feeluown.models.uri import reverse
 
-from .utils import read_audio_cover
 from .lans_helpers import core_lans
 from .schemas import (
     EasyMP3MetadataSongSchema,
@@ -29,6 +27,17 @@ from .schemas import (
 
 logger = logging.getLogger(__name__)
 SOURCE = 'local'
+
+
+def to_brief_song(song):
+    return BriefSongModel(
+        identifier=song.identifier,
+        source=song.source,
+        title=song.title,
+        artists_name=song.artists_name,
+        album_name=song.album_name,
+        duration_ms=song.duration_ms,
+    )
 
 
 def to_brief_album(album):

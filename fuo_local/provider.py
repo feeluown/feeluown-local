@@ -12,7 +12,7 @@ import re
 from fuzzywuzzy import process
 
 from feeluown.media import Media, Quality
-from feeluown.library import AbstractProvider, ProviderV2, ModelType
+from feeluown.library import AbstractProvider, ProviderV2, ModelType, SimpleSearchResult
 from feeluown.utils.reader import create_reader
 from feeluown.utils.utils import log_exectime
 
@@ -125,6 +125,8 @@ class LocalProvider(AbstractProvider, ProviderV2):
 
     @log_exectime
     def search(self, keyword, **kwargs):
+        from .db import to_brief_song
+
         limit = kwargs.get('limit', 10)
         repr_song_map = dict()
         for song in self.songs:
@@ -140,12 +142,13 @@ class LocalProvider(AbstractProvider, ProviderV2):
             # if score > 80, keyword is almost included in song key
             if score > 80:
                 result_songs.append(repr_song_map[each])
-        return LSearchModel(q=keyword, songs=result_songs)
+        return SimpleSearchResult(
+            q=keyword,
+            songs=[to_brief_song(song) for song in result_songs]
+        )
 
     def song_get_lyric(self, song):
         return None
 
 
 provider = LocalProvider()
-
-from .models import LSearchModel  # noqa
