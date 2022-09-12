@@ -3,7 +3,7 @@ import json
 import logging
 import os
 import re
-from feeluown.models.models import _get_artists_name
+from typing import Optional
 
 from marshmallow.exceptions import ValidationError
 from mutagen import MutagenError
@@ -15,12 +15,9 @@ from mutagen.apev2 import APEv2
 from feeluown.serializers import serialize
 from feeluown.utils.utils import elfhash, log_exectime
 from feeluown.models import AlbumType
-from feeluown.media import Media, MediaType
-from feeluown.models import reverse
 from feeluown.library import SongModel, AlbumModel, ArtistModel
 from feeluown.library import BriefAlbumModel, BriefArtistModel
 
-from .utils import read_audio_cover
 from .lans_helpers import core_lans
 from .schemas import (
     EasyMP3MetadataSongSchema,
@@ -142,6 +139,14 @@ def add_song(fpath,
     duration = data['duration']
     album_artist_name = data['album_artist_name']
 
+    # 如果专辑歌手名字是 unknown，并且歌曲的歌手里面有一个非 unknown 的，
+    # 就用它作为专辑歌手名字。因为这种情况很可能是元数据不规范造成的。
+    if album_artist_name == 'Unknown':
+        if artist_name_list:
+            for each in artist_name_list:
+                if each != 'Unknown':
+                    album_artist_name = each
+
     # 生成 song model
     # 用来生成 id 的字符串应该尽量减少无用信息，这样或许能减少 id 冲突概率
     # 加入分隔符'-'在一定概率上更能确保不发生哈希值重复
@@ -189,8 +194,12 @@ def add_song(fpath,
         album = g_albums[album_id]
 
     # 处理专辑的歌手信息和歌曲信息，专辑歌手的专辑列表信息
-    if album_artist not in album.artists:
-        album.artists.append(album_artist)
+    for artist in album.artists:
+        if album_artist.identifier == artist.identifier:
+            break
+    else:
+        album.artists.append(to_brief_artist(album_artist))
+
     if song not in album.songs:
         album.songs.append(song)
 
@@ -258,6 +267,7 @@ class DB:
         self._fpath = fpath
 
         self._file_song = {}      # {fpath: song_id}
+        self._song_file = {}      # {song_id: fpath}
         self._songs = {}          # {song_id: song}
         self._albums = {}         # {album_id: album)
         self._artists = {}        # {artist_id: artist)
@@ -306,6 +316,9 @@ class DB:
 
     def get_artist(self, identifier):
         return self._artists.get(identifier)
+
+    def get_song_fpath(self, song_id) -> Optional[str]:
+        return self._song_file.get(song_id)
 
     @log_exectime
     def scan(self, config, paths, depth, exts):
@@ -374,3 +387,6 @@ class DB:
                 #        artist.cover = Media(reverse(song, '/cover/data'),
                 #                             type_=MediaType.image)
                 #        break
+
+
+        self._song_file = {v: k for k, v in self._file_song.items()}

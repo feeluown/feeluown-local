@@ -9,7 +9,10 @@ import logging
 import os
 
 from fuzzywuzzy import process
-from feeluown.library import AbstractProvider, ProviderV2, ProviderFlags as PF
+
+from feeluown.media import Media, Quality
+from feeluown.library import AbstractProvider, ProviderV2, ModelType
+from feeluown.utils.reader import create_reader
 from feeluown.utils.utils import log_exectime
 
 logger = logging.getLogger(__name__)
@@ -34,21 +37,8 @@ class LocalProvider(AbstractProvider, ProviderV2):
     def initialize(self, app):
         self._app = app
 
-    def scan(self, config, paths, depth=3):
-        exts = config.MUSIC_FORMATS
-        self.db.scan(config, paths, depth, exts)
-        self.db.after_scan()
-
-    # implements SupportsSongMultiQuality protocol.
-    def song_get_media(self, song, quality):
-        # TODO(this_pr)
-        pass
-
     # @route('/cover/data')
     # TODO: read audio cover
-
-    # TODO: list artist's contributed_albums
-    # TODO: list artist's albums
 
     @property
     def identifier(self):
@@ -57,6 +47,52 @@ class LocalProvider(AbstractProvider, ProviderV2):
     @property
     def name(self):
         return '本地音乐'
+
+    def scan(self, config, paths, depth=3):
+        exts = config.MUSIC_FORMATS
+        self.db.scan(config, paths, depth, exts)
+        self.db.after_scan()
+
+    def use_model_v2(self, model_type):
+        return model_type in (ModelType.song, ModelType.album, ModelType.artist)
+
+    def song_get(self, identifier):
+        """implements SupportsSongGet protocol."""
+        return self.db.get_song(identifier)
+
+    def song_list_quality(self, _):
+        """implements SupportsSongMultiQuality protocol."""
+        return [Quality.Audio.sq]
+
+    def song_get_media(self, song, _):
+        """implements SupportsSongMultiQuality protocol."""
+        fpath = self.db.get_song_fpath(song.identifier)
+        if fpath:
+            return Media(fpath)
+
+    def album_get(self, identifier):
+        """Implement SupportsAlbumGet protocol."""
+        return self.db.get_album(identifier)
+
+    def artist_get(self, identifier):
+        """Implement SupportsArtistGet protocol."""
+        return self.db.get_artist(identifier)
+
+    def artist_create_songs_rd(self, artist):
+        """Implement SupportsArtistSongsReader protocol."""
+        artist = self.model_get(artist.meta.model_type, artist.identifier)
+        return create_reader(artist.hot_songs)
+
+    # TODO: list artist's contributed_albums
+    def artist_create_albums_rd(self, artist):
+        """Implement SupportsArtistAlbumsReader protocol."""
+        albums = []
+        for album in self.db.list_albums():
+            for artist_ in album.artists:
+                if artist_.identifier == artist.identifier:
+                    albums.append(album)
+                    continue
+        return create_reader(albums)
 
     @property
     def songs(self):
