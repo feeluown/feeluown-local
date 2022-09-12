@@ -14,10 +14,12 @@ from mutagen.apev2 import APEv2
 
 from feeluown.serializers import serialize
 from feeluown.utils.utils import elfhash, log_exectime
-from feeluown.models import AlbumType
+from feeluown.media import Media, MediaType
+from feeluown.models import AlbumType, reverse
 from feeluown.library import SongModel, AlbumModel, ArtistModel
 from feeluown.library import BriefAlbumModel, BriefArtistModel
 
+from .utils import read_audio_cover
 from .lans_helpers import core_lans
 from .schemas import (
     EasyMP3MetadataSongSchema,
@@ -48,6 +50,10 @@ def to_brief_artist(artist):
 
 def gen_id(s):
     return str(elfhash(base64.b64encode(bytes(s, 'utf-8'))))
+
+
+def gen_cover_url(song):
+    return reverse(song) + '/cover/data'
 
 
 def create_artist(identifier, name):
@@ -182,13 +188,9 @@ def add_song(fpath,
     # 生成 album model
     album_id_str = delimiter.join([album_name, album_artist_name])
     album_id = gen_id(album_id_str)
-    # cover_data, cover_fmt = read_audio_cover(fpath)
-    # if cover_data is None:
-    #     cover = None
-    # else:
-    #     cover = Media(reverse(song, '/cover/data'), type_=MediaType.image)
+    cover = gen_cover_url(song)
     if album_id not in g_albums:
-        album = create_album(album_id, album_name, None)
+        album = create_album(album_id, album_name, cover)
         g_albums[album_id] = album
     else:
         album = g_albums[album_id]
@@ -354,15 +356,9 @@ class DB:
             try:
                 album.songs.sort(key=lambda x: (int(x.disc.split('/')[0]),
                                                 int(x.track.split('/')[0])))
-                # TODO(this_pr)
-                # if album.name != 'Unknown':
-                #     cover_data, _ = read_audio_cover(album.songs[0].url)
-                #     if cover_data:
-                #         cover = Media(reverse(album.songs[0], '/cover/data'),
-                #                       type_=MediaType.image)
-                #     else:
-                #         cover = None
-                #     album.cover = cover
+                if album.name != 'Unknown':
+                    cover = gen_cover_url(album.songs[0])
+                    album.cover = cover
             except:  # noqa
                 logger.exception('Sort album songs failed.')
 
@@ -379,14 +375,11 @@ class DB:
                 # https://github.com/feeluown/feeluown-local/pull/3/files#r362126996
                 songs_with_unknown_album = [song for song in artist.hot_songs
                                             if song.album_name == 'Unknown']
-                # TODO(this_pr)
-                #for song in sorted(songs_with_unknown_album,
-                #                   key=lambda x: (x.year != 0, x.year),
-                #                   reverse=True):
-                #    if read_audio_cover(song.url)[0]:
-                #        artist.cover = Media(reverse(song, '/cover/data'),
-                #                             type_=MediaType.image)
-                #        break
+                for song in sorted(songs_with_unknown_album,
+                                   key=lambda x: (x.year != 0, x.year),
+                                   reverse=True):
+                    artist.pic_url = gen_cover_url(song)
+                    break
 
 
         self._song_file = {v: k for k, v in self._file_song.items()}

@@ -7,6 +7,7 @@ TODO: 这个模块中目前逻辑非常多，包括音乐目录扫描、音乐�
 
 import logging
 import os
+import re
 
 from fuzzywuzzy import process
 
@@ -14,6 +15,8 @@ from feeluown.media import Media, Quality
 from feeluown.library import AbstractProvider, ProviderV2, ModelType
 from feeluown.utils.reader import create_reader
 from feeluown.utils.utils import log_exectime
+
+from .utils import read_audio_cover
 
 logger = logging.getLogger(__name__)
 SOURCE = 'local'
@@ -37,8 +40,22 @@ class LocalProvider(AbstractProvider, ProviderV2):
     def initialize(self, app):
         self._app = app
 
-    # @route('/cover/data')
-    # TODO: read audio cover
+    def handle_with_path(self, path, **_):
+        """
+        handle ('/songs/{identifier}/cover/data')
+        """
+        p = re.compile(r'/songs/(\S+)/cover/data')
+        m = p.match(path)
+        if m is not None:
+            try:
+                identifier = m.group(1)
+            except IndexError:
+                return None
+            else:
+                fpath = self.db.get_song_fpath(identifier)
+                if fpath:
+                    return read_audio_cover(fpath)[0]
+        return None
 
     @property
     def identifier(self):
